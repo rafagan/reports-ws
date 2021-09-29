@@ -68,10 +68,6 @@
 # Produto: id, tipo_atividade
 # Venda: valor
 
-# /carrinho/...
-# /theme/...
-# /vendor/...
-
 #####
 from logging import exception
 
@@ -83,7 +79,14 @@ def parse_apache_log(path):
     with open(path) as file:
         parser = LogParser("%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"")
         for entry in parser.parse_lines(file):
-            entries.append(entry)
+            entries.append({
+                'host': entry.remote_host,
+                'ip': entry.remote_logname,
+                'datetime': entry.request_time,
+                'datetime_str': entry.request_time.strftime("%Y/%m/%d, %H:%M:%S"),
+                'agent': entry.headers_in['User-Agent'],
+                'request': entry.request_line
+            })
 
     return entries
 
@@ -91,13 +94,13 @@ def parse_apache_log(path):
 def validate_hosts(entries):
     groups = {}
     for entry in entries:
-        h = entry.remote_host
+        h = entry['host']
         groups[h] = groups.get(h, [])
         groups[h].append({
             'host': h,
-            'ip': entry.remote_logname,
-            'datetime': entry.request_time.strftime("%Y/%m/%d, %H:%M:%S"),
-            'agent': entry.headers_in['User-Agent']
+            'ip': entry['ip'],
+            'datetime': entry['datetime_str'],
+            'agent': entry['agent']
         })
 
     for group in groups.values():
