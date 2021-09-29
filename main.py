@@ -16,6 +16,7 @@
 ######
 
 # 2. Estudando os dados
+
 # https://github.com/jwodder/apachelogs
 # https://apachelogs.readthedocs.io/en/stable/directives.html
 # http://httpd.apache.org/docs/current/mod/mod_log_config.html
@@ -57,6 +58,24 @@
 # Referer: "%{Referer}i"
 # User-Agent: "%{User-Agent}i"
 
+#####
+
+# 3. Modelagem dos dados
+
+# Usuário: id
+# Visita: data, visita_nova, duração
+# Visita Produto: produto
+# Produto: id, tipo_atividade
+# Venda: valor
+
+# /carrinho/...
+# /theme/...
+# /vendor/...
+
+#####
+from logging import exception
+
+
 def parse_apache_log(path):
     entries = []
 
@@ -69,9 +88,36 @@ def parse_apache_log(path):
     return entries
 
 
+def validate_hosts(entries):
+    groups = {}
+    for entry in entries:
+        h = entry.remote_host
+        groups[h] = groups.get(h, [])
+        groups[h].append({
+            'host': h,
+            'ip': entry.remote_logname,
+            'datetime': entry.request_time.strftime("%Y/%m/%d, %H:%M:%S"),
+            'agent': entry.headers_in['User-Agent']
+        })
+
+    for group in groups.values():
+        if len(list(filter(lambda e: group[0]['ip'] != e['ip'], group))) > 0:
+            for v in group:
+                print(v)
+            print('xxxxxxxxxxxxxxxxxxxxx')
+            # raise exception('Foi encontrado um remote_logname diferente em um grupo com os mesmos remote_host')
+
+
+def process_log_entries(entries):
+    pass
+    # Verificar se remote_host e remote_logname é o mesmo
+    # Verificar se User-Agent é o mesmo
+    # Verificar se intervalo de tempo é maior que 15 minutos
+
+
 def run():
     entries = parse_apache_log('logs/2021-09-15.log')
-    print(entries)
+    validate_hosts(entries)
 
 
 run()
