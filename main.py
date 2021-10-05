@@ -69,50 +69,79 @@
 # Venda: valor
 
 #####
-from logging import exception
 
 
 def parse_apache_log(path):
+    import hashlib
     entries = []
 
     from apachelogs import LogParser
     with open(path) as file:
         parser = LogParser("%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"")
         for entry in parser.parse_lines(file):
+            user_agent = entry.headers_in['User-Agent']
+
             entries.append({
                 'host': entry.remote_host,
                 'ip': entry.remote_logname,
-                'datetime': entry.request_time,
+                # 'datetime': entry.request_time,
                 'datetime_str': entry.request_time.strftime("%Y/%m/%d, %H:%M:%S"),
-                'agent': entry.headers_in['User-Agent'],
-                'request': entry.request_line
+                # 'agent': user_agent,
+                'agent_checksum': hashlib.md5(user_agent.encode('utf-8')).hexdigest() if user_agent is not None else None,
+                # 'request': entry.request_line
             })
 
     return entries
 
 
+# Conclusão: Existem ips diferentes para hosts iguais
 def validate_hosts(entries):
-    groups = {}
+    host_groups = {}
     for entry in entries:
         h = entry['host']
-        groups[h] = groups.get(h, [])
-        groups[h].append({
+        host_groups[h] = host_groups.get(h, [])
+        host_groups[h].append({
             'host': h,
             'ip': entry['ip'],
             'datetime': entry['datetime_str'],
-            'agent': entry['agent']
+            'checksum': entry['agent_checksum']
         })
 
-    for group in groups.values():
-        if len(list(filter(lambda e: group[0]['ip'] != e['ip'], group))) > 0:
-            for v in group:
+    for host_group in host_groups.values():
+        has_different_ip = len(list(filter(lambda e: host_group[0]['ip'] != e['ip'], host_group))) > 0
+        if has_different_ip:
+            for v in host_group:
                 print(v)
             print('xxxxxxxxxxxxxxxxxxxxx')
-            # raise exception('Foi encontrado um remote_logname diferente em um grupo com os mesmos remote_host')
 
 
+def group_data(entries, key):
+    groups = {}
+    for entry in entries:
+        v = entry[key]
+        groups[v] = groups.get(v, [])
+        groups[v].append(entry)
+    return groups
+
+
+# Validações:
+# O log se trata de apenas um dia, então só há como identificar novos usuários
+# O fato de um user agent se repetir entre dias não significa que é um antigo usuário
+# Agentes se repetindo em horários muito intervalados devem significar visitas diferentes
+# Agentes se repetindo em horários próximos com IPs diferentes devem ser considerados o mesmo?
+# Agentes se repetindo em horários mais distantes com IPs iguais devem ser considerados o mesmo?
+# Verificar situações com inexistência de host (ip None)
+# Demonstrar possível tentativa de hack nos logs
 def process_log_entries(entries):
-    pass
+    host_groups = group_data(entries, 'host')
+
+    for host_group in host_groups.values():
+        agent_group = group_data(host_group, 'agent_checksum')
+        for values in agent_group.values():
+            for v in values:
+                print(v)
+        print('xxxxxxxxxxxxx')
+
     # Verificar se remote_host e remote_logname é o mesmo
     # Verificar se User-Agent é o mesmo
     # Verificar se intervalo de tempo é maior que 15 minutos
@@ -120,7 +149,7 @@ def process_log_entries(entries):
 
 def run():
     entries = parse_apache_log('logs/2021-09-15.log')
-    validate_hosts(entries)
+    process_log_entries(entries)
 
 
 run()
