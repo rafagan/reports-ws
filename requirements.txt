@@ -1,1 +1,5 @@
 apachelogs
+flask
+flask-restful
+flask-sqlalchemy
+sqlalchemy
