@@ -69,7 +69,11 @@
 # Venda: valor
 
 #####
+import re
 from datetime import timedelta
+
+from server.db import fetch_visitor, insert_visitor, insert_visitor_visit
+from server.model import Visitor, VisitorVisit
 
 
 def parse_apache_log(path):
@@ -87,9 +91,9 @@ def parse_apache_log(path):
                 'ip': entry.remote_logname,
                 'datetime': entry.request_time,
                 'datetime_str': entry.request_time.strftime("%Y/%m/%d, %H:%M:%S"),
-                # 'agent': user_agent,
+                'agent': user_agent,
                 'agent_checksum': hashlib.md5(user_agent.encode('utf-8')).hexdigest() if user_agent is not None else None,
-                # 'request': entry.request_line
+                'request': entry.request_line
             })
 
     return entries
@@ -134,23 +138,26 @@ def group_data(entries, key):
 # Será considerado 30 minutos como tempo de sessão, sendo extendido em 30 minutos toda vez que o
 def process_user_trails(entries):
     results = []
-    host_groups = group_data(entries, 'host')
 
     # Agrupa por host
+    host_groups = group_data(entries, 'host')
     for host_group in host_groups.values():
         # Entradas sem host serão ignoradas (google, hackers)
         if host_group[0]['ip'] is None:
             continue
 
         # Dentro do host, agrupa por agent
-        agent_group = group_data(host_group, 'agent_checksum')
-        for items in agent_group.values():
+        agent_groups = group_data(host_group, 'agent_checksum')
+        for agent_group in agent_groups.values():
+            if agent_group[0]['agent'] is None:
+                continue
+
             visitor_trail = []
-            last_index = len(items) - 1
+            last_index = len(agent_group) - 1
 
             for i in range(last_index):
-                visitor_trail.append(items[i])
-                is_session_time_exceeded_30_min = items[i]['datetime'] + timedelta(minutes=30) < items[i + 1]['datetime']
+                visitor_trail.append(agent_group[i])
+                is_session_time_exceeded_30_min = agent_group[i]['datetime'] + timedelta(minutes=30) < agent_group[i + 1]['datetime']
                 is_last_one = i == last_index
 
                 if is_session_time_exceeded_30_min or is_last_one:
@@ -160,14 +167,68 @@ def process_user_trails(entries):
     return results
 
 
+# Para cada trail
+# 1- Verificar se visitante já existe
+# 2- Se não existe, adicionar a Visitor e pegar registro
+# 3- Se existe, pegar registro e adicionar VisitorVisit:
+# a) date deve ser o primeiro horário
+# b) durationSecs deve ser o tempo em segundos entre a primeira e última data
+# c) isNew é descoberto a partir da existência prévia de Visitor
+# d) visitorId já é conhecido
+def process_visitors(trails):
+    for trail in trails:
+        first = trail[0]
+        last = trail[-1]
+        visitor_id = first['agent_checksum']
+        visitor = fetch_visitor(visitor_id)
+        is_new = visitor is None
+        duration_secs = (last['datetime'] - first['datetime']).seconds
+
+        if duration_secs < 15:
+            continue
+
+        if is_new:
+            visitor = Visitor(id=visitor_id)
+            print(f'Inserting Visitor: {visitor}')
+            insert_visitor(visitor)
+
+        visitor_visit = VisitorVisit(
+            date=first['datetime'],
+            duration_secs=(last['datetime'] - first['datetime']).seconds,
+            is_new=is_new,
+            host=first['host'],
+            visitor_id=visitor_id
+        )
+        print(f'Inserting VisitorVisit: {visitor_visit}')
+        insert_visitor_visit(visitor_visit)
+
+
+# 4- Filtrar entradas contendo "produto={id}" e opcional: /api/produto/{nome}/calendario
+# a) Se conseguir encontrar o nome do produto, verificando requests do mesmo grupo ou do cache salva
+# b) name: Verifica se produto existe para pegar nome, senao tentar descobrir
+# c) activity_type: impossivel saber
+# d) Pegar data e salvar em ProductVisit
+def process_products(trails):
+    def crawl_product_id(request):
+        result = re.match(r'\*?produto=(\d+)&\*?', request)
+        return result.group(1) if result else None
+
+    for trail in trails:
+        trail = list(filter(lambda entry: 'produto' in entry['request'], trail))
+        if len(trail) == 0:
+            continue
+
+        for entry in trail:
+            request = entry['request']
+            if 'produto=' in request:
+                product_id = crawl_product_id(request)
+
+
 def run():
     entries = parse_apache_log('logs/2021-09-15.log')
     trails = process_user_trails(entries)
-
-    for trail in trails:
-        for entry in trail:
-            print(entry)
-        print('xxxxxxx')
+    process_visitors(trails)
+    # process_products(trails)
 
 
 run()
