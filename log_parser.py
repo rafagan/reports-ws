@@ -69,6 +69,7 @@
 # Venda: valor
 
 #####
+from datetime import timedelta
 
 
 def parse_apache_log(path):
@@ -84,7 +85,7 @@ def parse_apache_log(path):
             entries.append({
                 'host': entry.remote_host,
                 'ip': entry.remote_logname,
-                # 'datetime': entry.request_time,
+                'datetime': entry.request_time,
                 'datetime_str': entry.request_time.strftime("%Y/%m/%d, %H:%M:%S"),
                 # 'agent': user_agent,
                 'agent_checksum': hashlib.md5(user_agent.encode('utf-8')).hexdigest() if user_agent is not None else None,
@@ -128,28 +129,45 @@ def group_data(entries, key):
 # O log se trata de apenas um dia, então só há como identificar novos usuários
 # O fato de um user agent se repetir entre dias não significa que é um antigo usuário
 # Agentes se repetindo em horários muito intervalados devem significar visitas diferentes
-# Agentes se repetindo em horários próximos com IPs diferentes devem ser considerados o mesmo?
-# Agentes se repetindo em horários mais distantes com IPs iguais devem ser considerados o mesmo?
-# Verificar situações com inexistência de host (ip None)
-# Demonstrar possível tentativa de hack nos logs
-def process_log_entries(entries):
+# Agentes se repetindo em horários próximos com IPs diferentes são considerados o mesmo
+# Quando não existe host, o log é ignorado (Google, Hacks)
+# Será considerado 30 minutos como tempo de sessão, sendo extendido em 30 minutos toda vez que o
+def process_user_trails(entries):
+    results = []
     host_groups = group_data(entries, 'host')
 
+    # Agrupa por host
     for host_group in host_groups.values():
-        agent_group = group_data(host_group, 'agent_checksum')
-        for values in agent_group.values():
-            for v in values:
-                print(v)
-        print('xxxxxxxxxxxxx')
+        # Entradas sem host serão ignoradas (google, hackers)
+        if host_group[0]['ip'] is None:
+            continue
 
-    # Verificar se remote_host e remote_logname é o mesmo
-    # Verificar se User-Agent é o mesmo
-    # Verificar se intervalo de tempo é maior que 15 minutos
+        # Dentro do host, agrupa por agent
+        agent_group = group_data(host_group, 'agent_checksum')
+        for items in agent_group.values():
+            visitor_trail = []
+            last_index = len(items) - 1
+
+            for i in range(last_index):
+                visitor_trail.append(items[i])
+                is_session_time_exceeded_30_min = items[i]['datetime'] + timedelta(minutes=30) < items[i + 1]['datetime']
+                is_last_one = i == last_index
+
+                if is_session_time_exceeded_30_min or is_last_one:
+                    results.append(visitor_trail)
+                    visitor_trail = []
+
+    return results
 
 
 def run():
     entries = parse_apache_log('logs/2021-09-15.log')
-    process_log_entries(entries)
+    trails = process_user_trails(entries)
+
+    for trail in trails:
+        for entry in trail:
+            print(entry)
+        print('xxxxxxx')
 
 
 run()

@@ -17,7 +17,7 @@ def insert_visitor(visitor):
         with connection.cursor() as cursor:
             cursor.execute(
                 'INSERT INTO Visitor (id) VALUES (%s)',
-                visitor.id
+                (visitor.id,)
             )
 
 
