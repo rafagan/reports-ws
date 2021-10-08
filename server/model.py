@@ -9,7 +9,7 @@ class Visitor:
 
 @dataclass
 class Product:
-    id = -1
+    id: int
     name: str
     activity_type: str
 

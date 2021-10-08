@@ -72,8 +72,9 @@
 import re
 from datetime import timedelta
 
-from server.db import fetch_visitor, insert_visitor, insert_visitor_visit
-from server.model import Visitor, VisitorVisit
+from server.db import fetch_visitor, insert_visitor, insert_visitor_visit, fetch_product, insert_product, \
+    insert_product_visit
+from server.model import Visitor, VisitorVisit, Product, ProductVisit
 
 
 def parse_apache_log(path):
@@ -135,7 +136,8 @@ def group_data(entries, key):
 # Agentes se repetindo em horários muito intervalados devem significar visitas diferentes
 # Agentes se repetindo em horários próximos com IPs diferentes são considerados o mesmo
 # Quando não existe host, o log é ignorado (Google, Hacks)
-# Será considerado 30 minutos como tempo de sessão, sendo extendido em 30 minutos toda vez que o
+# Será considerado 30 minutos como tempo de sessão,
+#   sendo extendido em 30 minutos toda vez que o mesmo agente aparecer no mesmo host
 def process_user_trails(entries):
     results = []
 
@@ -209,26 +211,85 @@ def process_visitors(trails):
 # c) activity_type: impossivel saber
 # d) Pegar data e salvar em ProductVisit
 def process_products(trails):
-    def crawl_product_id(request):
-        result = re.match(r'\*?produto=(\d+)&\*?', request)
-        return result.group(1) if result else None
+    def parse_product_id(request):
+        result = re.match(r'.*?produto=(\d+).*?', request)
+        return int(result.group(1)) if result else None
 
+    def parse_product_name(request):
+        result = re.match(r'.*?/api/produto/(.*?)[/? ].*?', request)
+        try:
+            return result.group(1).replace('-', ' ')
+        except:
+            return None
+
+    products = {}
     for trail in trails:
-        trail = list(filter(lambda entry: 'produto' in entry['request'], trail))
+        trail = list(filter(
+            lambda entry: 'produto' in entry['request'] and '/css/' not in entry['request'] and '/js/' not in entry['request'],
+            trail
+        ))
+
         if len(trail) == 0:
             continue
 
-        for entry in trail:
-            request = entry['request']
+        product_id = None
+        product_name = None
+        for i in range(len(trail)):
+            request = trail[i]['request']
+
             if 'produto=' in request:
-                product_id = crawl_product_id(request)
+                product_id = parse_product_id(request)
+
+            if '/api' in request:
+                product_name = parse_product_name(request)
+
+            if product_id is not None:
+                if len(products.get(product_id, '')) == 0:
+                    if product_name is not None:
+                        products[product_id] = product_name
+                        product_id = None
+                        product_name = None
+                    else:
+                        products[product_id] = ''
+
+    activity_types = [
+        'trilha', 'cachoeira', 'camping', 'salto',
+        'cafe', 'casa', 'rota', 'passeio'
+    ]
+
+    for trail in trails:
+        trail = list(filter(
+            lambda entry: 'produto=' in entry['request'],
+            trail
+        ))
+
+        for entry in trail:
+            product_id = parse_product_id(entry['request'])
+            product = fetch_product(product_id)
+            if product is None:
+                name = products[product_id]
+                activity_type = 'outros' if len(name) == 0 else 'desconhecido'
+                for t in activity_types:
+                    if t in name:
+                        activity_type = t
+                        break
+                product = Product(id=product_id, name=name, activity_type=activity_type)
+                print(f'Inserting Product: {product}')
+                insert_product(product)
+
+            product_visit = ProductVisit(
+                date=entry['datetime'],
+                product_id=product_id
+            )
+            print(f'Inserting ProductVisit: {product_visit}')
+            insert_product_visit(product_visit)
 
 
 def run():
     entries = parse_apache_log('logs/2021-09-15.log')
     trails = process_user_trails(entries)
-    process_visitors(trails)
-    # process_products(trails)
+    # process_visitors(trails)
+    process_products(trails)
 
 
 run()

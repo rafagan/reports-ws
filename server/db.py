@@ -1,6 +1,6 @@
 import psycopg2
 
-from server.model import Visitor, VisitorVisit
+from server.model import Visitor, VisitorVisit, Product, ProductVisit, Sell
 
 
 def gen_connection():
@@ -14,7 +14,7 @@ def gen_connection():
     return connection
 
 
-def insert_visitor(visitor):
+def insert_visitor(visitor: Visitor):
     with gen_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -23,11 +23,11 @@ def insert_visitor(visitor):
             )
 
 
-def insert_product(product):
+def insert_product(product: Product):
     with gen_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                'INSERT INTO Product(name, activityType) VALUES(%s, %s)',
+                'INSERT INTO Product(id, name, activityType) VALUES(%s, %s, %s)',
                 (
                     product.id,
                     product.name,
@@ -36,11 +36,23 @@ def insert_product(product):
             )
 
 
-def insert_sell(sell):
+def insert_product_visit(visit: ProductVisit):
     with gen_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                'INSERT INTO Sell(visitorId, productId) VALUES(%s, %d)',
+                'INSERT INTO ProductVisit(date, productId) VALUES(%s, %s)',
+                (
+                    visit.date,
+                    visit.product_id
+                )
+            )
+
+
+def insert_sell(sell: Sell):
+    with gen_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'INSERT INTO Sell(visitorId, productId) VALUES(%s, %s)',
                 (
                     sell.visitor_id,
                     sell.product_id
@@ -48,7 +60,7 @@ def insert_sell(sell):
             )
 
 
-def insert_visitor_visit(visit):
+def insert_visitor_visit(visit: VisitorVisit):
     with gen_connection() as connection:
         with connection.cursor() as cursor:
             try:
@@ -81,12 +93,11 @@ def fetch_visitor_visit(visitor_visit_id):
             return None if result is None else VisitorVisit(*result)
 
 
-
-def fetch_project(project_id):
+def fetch_product(product_id):
     with gen_connection() as connection:
         with connection.cursor() as cursor:
-            cursor.execute('SELECT * FROM Project WHERE id = %s', (project_id,))
+            cursor.execute('SELECT * FROM Product WHERE id = %s', (product_id,))
             result = cursor.fetchone()
-            return None if result is None else Visitor(*result)
+            return None if result is None else Product(*result)
 
 
