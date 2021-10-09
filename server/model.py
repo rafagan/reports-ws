@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 
 
@@ -16,14 +16,16 @@ class Product:
 
 @dataclass
 class Sell:
-    id = -1
+    id: int
     visitor_id: str
     product_id: str
+    date: datetime
+    value: int
 
 
 @dataclass
 class VisitorVisit:
-    id = -1
+    id: int
     date: datetime
     duration_secs: int
     is_new: bool
@@ -33,6 +35,6 @@ class VisitorVisit:
 
 @dataclass
 class ProductVisit:
-    id = -1
+    id: int
     date: datetime
     product_id: int

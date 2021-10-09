@@ -195,6 +195,7 @@ def process_visitors(trails):
             insert_visitor(visitor)
 
         visitor_visit = VisitorVisit(
+            id=-1,
             date=first['datetime'],
             duration_secs=(last['datetime'] - first['datetime']).seconds,
             is_new=is_new,
@@ -278,6 +279,7 @@ def process_products(trails):
                 insert_product(product)
 
             product_visit = ProductVisit(
+                id=-1,
                 date=entry['datetime'],
                 product_id=product_id
             )
@@ -288,7 +290,7 @@ def process_products(trails):
 def run():
     entries = parse_apache_log('logs/2021-09-15.log')
     trails = process_user_trails(entries)
-    # process_visitors(trails)
+    process_visitors(trails)
     process_products(trails)
 
 
