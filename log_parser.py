@@ -269,7 +269,7 @@ def process_products(trails):
             product = fetch_product(product_id)
             if product is None:
                 name = products[product_id]
-                activity_type = 'outros' if len(name) == 0 else 'desconhecido'
+                activity_type = 'outros'
                 for t in activity_types:
                     if t in name:
                         activity_type = t

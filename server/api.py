@@ -1,6 +1,6 @@
 from flask import Flask, request
 
-from server.db import gen_connection, query_daily_visits, query_total_visits, query_total_new_visits, \
+from server.db import query_daily_visits, query_total_visits, query_total_new_visits, \
     query_avg_engagement_time_secs, query_total_receipt, query_most_visited_products_by_activity_type
 
 app = Flask(__name__)
@@ -32,7 +32,7 @@ def get_total_receipt(month):
 
 
 @app.route('/products/{activity_type}', methods=['GET'])
-def get_most_visited_product(activity_type):
+def get_most_visited_products(activity_type):
     amount = request.args.get('amount', 7)
     return {
         'status': 'ok',
