@@ -75,6 +75,20 @@ def query_daily_visits(month: int) -> List[VisitorVisit]:
             return [] if results is None else list(map(lambda r: VisitorVisit(*r), results))
 
 
+def query_duration_secs_visits_by_day(month: int) -> List[VisitorVisit]:
+    with gen_connection() as connection:
+        with connection.cursor() as cursor:
+            # TODO: Como só tem 1 dia, vamos trocar DAY por HOUR para testar
+            cursor.execute(
+                'SELECT EXTRACT(HOUR FROM date) AS day, SUM(durationSecs) AS value '
+                'FROM VisitorVisit '
+                'WHERE EXTRACT(MONTH FROM date) = %s'
+                'GROUP BY day '
+                'ORDER BY day', (month,))
+            results = cursor.fetchall()
+            return [] if results is None else list(map(lambda r: {'day': int(r[0]) + 1, 'value': r[1]}, results))
+
+
 def query_total_visits(month: int) -> int:
     with gen_connection() as connection:
         with connection.cursor() as cursor:
@@ -129,3 +143,4 @@ def query_most_visited_products_by_activity_type(activity_type: str, amount=7):
                            'LIMIT %s;', (activity_type, amount,))
             results = cursor.fetchall()
             return [] if results is None else list(map(lambda r: {'amount': r[0], 'id': r[1], 'name': r[2]}, results))
+
