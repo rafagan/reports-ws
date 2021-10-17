@@ -1,13 +1,14 @@
 import datetime
+import os
 
 from flask import Flask, request
 from flask_cors import CORS
 
-from server.db import query_daily_visits, query_total_visits, query_total_new_visits, query_avg_engagement_time_secs, \
+from db import query_daily_visits, query_total_visits, query_total_new_visits, query_avg_engagement_time_secs, \
     query_most_visited_products_by_activity_type, query_total_receipt, query_duration_secs_visits_by_day
 from flask import Flask, request
 
-from server.db import query_daily_visits, query_total_visits, query_total_new_visits, query_avg_engagement_time_secs, \
+from db import query_daily_visits, query_total_visits, query_total_new_visits, query_avg_engagement_time_secs, \
     query_most_visited_products_by_activity_type, query_total_receipt
 
 app = Flask(__name__)
@@ -60,4 +61,4 @@ def get_most_visited_products(activity_type):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=os.environ.get('DEBUG', 'true') == 'true')
