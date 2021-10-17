@@ -11,9 +11,13 @@ RUN pip3 install -r requirements.txt --no-cache-dir
 
 COPY . /app
 EXPOSE 5000
+EXPOSE 5432
 WORKDIR /app
 
-ENV DEBUG="false"
+ENV DEBUG false
+ENV DB_HOST host.docker.internal
+ENV DB_PASSWORD 39yYg7sFKhVRH2z3
+ENV DB_PORT 5432
 
 ENTRYPOINT ["python3"]
 CMD ["/app/server/api.py"]

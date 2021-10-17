@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 import psycopg2
@@ -8,10 +9,10 @@ from model import Visitor, VisitorVisit, Product, ProductVisit
 def gen_connection():
     return psycopg2.connect(
         user='report',
-        password='39yYg7sFKhVRH2z3',
-        host='127.0.0.1',
-        port='5432',
-        database='report'
+        database='report',
+        password=os.environ.get('DB_PASSWORD', 'root'),
+        host=os.environ.get('DB_HOST', '0.0.0.0'),
+        port=os.environ.get('DB_PORT', 5432)
     )
 
 
