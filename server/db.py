@@ -8,11 +8,11 @@ from model import Visitor, VisitorVisit, Product, ProductVisit
 
 def gen_connection():
     return psycopg2.connect(
-        user='report',
-        database='report',
-        password=os.environ.get('DB_PASSWORD', 'root'),
-        host=os.environ.get('DB_HOST', '0.0.0.0'),
-        port=os.environ.get('DB_PORT', 5432)
+        user=os.environ.get('POSTGRES_USER'),
+        database=os.environ.get('POSTGRES_DB'),
+        password=os.environ.get('POSTGRES_PASSWORD'),
+        host=os.environ.get('POSTGRES_HOST'),
+        port=os.environ.get('POSTGRES_PORT')
     )
 
 
