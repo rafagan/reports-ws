@@ -11,7 +11,6 @@ RUN pip3 install -r requirements.txt --no-cache-dir
 
 COPY . /app
 EXPOSE 5000
-EXPOSE 5432
 WORKDIR /app
 
 ENV DEBUG false
