@@ -6,3 +6,5 @@ docker rm reports-ws
 docker run --name reports-ws -p 5000:5000 reports-ws
 
 docker build . --tag reports-ws && docker rm reports-ws; docker run --name reports-ws -p 5000:5000 reports-ws
+
+docker exec -it 45793d36e859 /bin/bash
