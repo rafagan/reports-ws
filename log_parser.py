@@ -288,7 +288,7 @@ def process_products(trails):
 
 
 def run():
-    entries = parse_apache_log('../logs/2021-09-15.log')
+    entries = parse_apache_log('./logs/2021-09-15.log')
     trails = process_user_trails(entries)
     process_visitors(trails)
     process_products(trails)
