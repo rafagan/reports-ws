@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python3 /app/server/api.py
+gunicorn -w 4 server.api:app -b 0.0.0.0:5000

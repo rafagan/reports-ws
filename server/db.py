@@ -3,7 +3,7 @@ from typing import List
 
 import psycopg2
 
-from model import Visitor, VisitorVisit, Product, ProductVisit
+from server.model import Visitor, VisitorVisit, Product, ProductVisit
 
 
 def gen_connection():

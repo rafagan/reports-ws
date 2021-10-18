@@ -18,5 +18,5 @@ ENV DEBUG false
 # ENV DB_PASSWORD 39yYg7sFKhVRH2z3
 # ENV DB_PORT 5432
 
-ENTRYPOINT ["python3"]
-CMD ["/app/server/api.py"]
+# ENTRYPOINT ["python3"]
+# CMD ["/app/server/api.py"]

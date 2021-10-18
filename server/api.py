@@ -4,11 +4,11 @@ import os
 from flask import Flask, request
 from flask_cors import CORS
 
-from db import query_daily_visits, query_total_visits, query_total_new_visits, query_avg_engagement_time_secs, \
+from server.db import query_daily_visits, query_total_visits, query_total_new_visits, query_avg_engagement_time_secs, \
     query_most_visited_products_by_activity_type, query_total_receipt, query_duration_secs_visits_by_day
 from flask import Flask, request
 
-from db import query_daily_visits, query_total_visits, query_total_new_visits, query_avg_engagement_time_secs, \
+from server.db import query_daily_visits, query_total_visits, query_total_new_visits, query_avg_engagement_time_secs, \
     query_most_visited_products_by_activity_type, query_total_receipt
 
 app = Flask(__name__)
