@@ -72,9 +72,9 @@
 import re
 from datetime import timedelta
 
-from db import fetch_visitor, insert_visitor, insert_visitor_visit, fetch_product, insert_product, \
+from server.db import fetch_visitor, insert_visitor, insert_visitor_visit, fetch_product, insert_product, \
     insert_product_visit
-from model import Visitor, VisitorVisit, Product, ProductVisit
+from server.model import Visitor, VisitorVisit, Product, ProductVisit
 
 
 def parse_apache_log(path):
